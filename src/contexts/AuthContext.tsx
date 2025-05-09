@@ -33,6 +33,7 @@ type AuthContextType = {
   logout: () => void;
   updateProfile: (updates: Partial<User>) => Promise<boolean>;
   submitKYC: (documentType: string, documentId: string) => Promise<boolean>;
+  resetPassword: (email: string) => Promise<boolean>;
 };
 
 // Mock data
@@ -241,6 +242,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return true;
   };
 
+  const resetPassword = async (email: string): Promise<boolean> => {
+    setIsLoading(true);
+
+    // Simulate delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Check if email exists
+    const userExists = MOCK_USERS.some(u => u.email === email);
+
+    if (!userExists) {
+      toast({
+        title: "Reset Password Failed",
+        description: "No account found with this email address.",
+        variant: "destructive"
+      });
+      setIsLoading(false);
+      return false;
+    }
+
+    // In a real app, this would send a password reset email
+    toast({
+      title: "Reset Instructions Sent",
+      description: "If an account exists with this email, you will receive password reset instructions.",
+    });
+
+    setIsLoading(false);
+    return true;
+  };
+
   const submitKYC = async (documentType: string, documentId: string): Promise<boolean> => {
     if (!user) return false;
     
@@ -284,6 +314,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logout,
     updateProfile,
     submitKYC,
+    resetPassword,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
