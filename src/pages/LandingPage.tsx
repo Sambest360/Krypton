@@ -11,9 +11,9 @@ const LandingPage = () => {
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <div className="h-10 w-10 rounded-md bg-trading-primary flex items-center justify-center">
-            <span className="text-white font-bold text-lg">WH</span>
+            <span className="text-white font-bold text-lg">KP</span>
           </div>
-          <h1 className="text-xl font-bold">Wealth Haven</h1>
+          <h1 className="text-xl font-bold">Krypton</h1>
         </div>
         
         <div className="hidden md:flex items-center space-x-6">
@@ -47,7 +47,7 @@ const LandingPage = () => {
           <div className="flex flex-col md:flex-row items-center">
             <div className="w-full md:w-1/2 mb-10 md:mb-0">
               <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
-                Trade with Confidence on Wealth Haven
+                Trade with Confidence on Krypton
               </h1>
               <p className="text-xl text-muted-foreground mb-8">
                 The premier platform for cryptocurrency and fiat currency trading.
@@ -107,7 +107,7 @@ const LandingPage = () => {
       <section id="features" className="py-16 bg-muted/30">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold mb-4">Why Choose Wealth Haven?</h2>
+            <h2 className="text-3xl font-bold mb-4">Why Choose Krypton?</h2>
             <p className="text-lg text-muted-foreground mx-auto max-w-2xl">
               Our platform offers everything you need to trade cryptocurrencies and fiat currencies with ease and security.
             </p>
@@ -287,9 +287,9 @@ const LandingPage = () => {
             <div>
               <div className="flex items-center space-x-2 mb-4">
                 <div className="h-8 w-8 rounded-md bg-trading-primary flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">WH</span>
+                  <span className="text-white font-bold text-sm">KP</span>
                 </div>
-                <h3 className="text-lg font-bold">Wealth Haven</h3>
+                <h3 className="text-lg font-bold">Krypton</h3>
               </div>
               <p className="text-sm text-muted-foreground mb-4">
                 The premier platform for cryptocurrency and fiat currency trading.
@@ -349,7 +349,7 @@ const LandingPage = () => {
           
           <div className="mt-12 pt-8 border-t border-muted-foreground/10 flex flex-col md:flex-row justify-between items-center">
             <p className="text-sm text-muted-foreground">
-              &copy; {new Date().getFullYear()} Wealth Haven. All rights reserved.
+              &copy; {new Date().getFullYear()} Krypton. All rights reserved.
             </p>
             <div className="flex space-x-6 mt-4 md:mt-0">
               <a href="#" className="text-sm text-muted-foreground hover:text-foreground">

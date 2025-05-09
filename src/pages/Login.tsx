@@ -33,9 +33,9 @@ const Login = () => {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="inline-block h-12 w-12 rounded-md bg-trading-primary flex items-center justify-center mb-4">
-            <span className="text-white font-bold text-2xl">WH</span>
+            <span className="text-white font-bold text-2xl">KP</span>
           </div>
-          <h1 className="text-2xl font-bold">Welcome to Wealth Haven</h1>
+          <h1 className="text-2xl font-bold">Welcome to Krypton</h1>
           <p className="text-muted-foreground">Your premium trading platform</p>
         </div>
         
