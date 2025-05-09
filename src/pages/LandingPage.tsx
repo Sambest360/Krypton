@@ -1,48 +1,45 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { TrendingUp, Shield, Globe, Users } from 'lucide-react';
+import { TrendingUp, Shield, Globe, Users, Check } from 'lucide-react';
 
 const LandingPage = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header/Navigation */}
-      <header className="border-b">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <div className="h-10 w-10 rounded-md bg-trading-primary flex items-center justify-center">
-              <span className="text-white font-bold text-lg">WH</span>
-            </div>
-            <h1 className="text-xl font-bold">Wealth Haven</h1>
+      <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <div className="h-10 w-10 rounded-md bg-trading-primary flex items-center justify-center">
+            <span className="text-white font-bold text-lg">WH</span>
           </div>
-          
-          <div className="hidden md:flex items-center space-x-6">
-            <Link to="/" className="text-muted-foreground hover:text-foreground transition-colors">
-              Home
-            </Link>
-            <Link to="/#features" className="text-muted-foreground hover:text-foreground transition-colors">
-              Features
-            </Link>
-            <Link to="/#pricing" className="text-muted-foreground hover:text-foreground transition-colors">
-              Pricing
-            </Link>
-            <Link to="/#about" className="text-muted-foreground hover:text-foreground transition-colors">
-              About Us
-            </Link>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <Link to="/login">
-              <Button variant="outline">Login</Button>
-            </Link>
-            <Link to="/register">
-              <Button className="bg-trading-primary hover:bg-trading-secondary">Register</Button>
-            </Link>
-          </div>
+          <h1 className="text-xl font-bold">Wealth Haven</h1>
         </div>
-      </header>
+        
+        <div className="hidden md:flex items-center space-x-6">
+          <Link to="/" className="text-muted-foreground hover:text-foreground transition-colors">
+            Home
+          </Link>
+          <Link to="/#features" className="text-muted-foreground hover:text-foreground transition-colors">
+            Features
+          </Link>
+          <Link to="/#pricing" className="text-muted-foreground hover:text-foreground transition-colors">
+            Pricing
+          </Link>
+          <Link to="/#about" className="text-muted-foreground hover:text-foreground transition-colors">
+            About Us
+          </Link>
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          <Link to="/login">
+            <Button variant="outline">Login</Button>
+          </Link>
+          <Link to="/register">
+            <Button className="bg-trading-primary hover:bg-trading-secondary">Register</Button>
+          </Link>
+        </div>
+      </div>
       
       {/* Hero Section */}
       <section className="py-16 md:py-24">
