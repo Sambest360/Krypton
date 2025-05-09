@@ -48,9 +48,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
       <div className="hidden md:flex md:w-64 flex-col border-r bg-card p-4">
         <div className="flex items-center space-x-2 mb-6">
           <div className="h-10 w-10 rounded-md bg-trading-primary flex items-center justify-center">
-            <span className="text-white font-bold text-lg">WH</span>
+            <span className="text-white font-bold text-lg">KP</span>
           </div>
-          <h1 className="text-xl font-bold">Wealth Haven</h1>
+          <h1 className="text-xl font-bold">Krypton</h1>
         </div>
         
         <div className="flex flex-col space-y-1">
@@ -119,9 +119,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
       <div className="md:hidden flex items-center justify-between p-4 border-b">
         <div className="flex items-center space-x-2">
           <div className="h-8 w-8 rounded-md bg-trading-primary flex items-center justify-center">
-            <span className="text-white font-bold text-sm">WH</span>
+            <span className="text-white font-bold text-sm">KP</span>
           </div>
-          <h1 className="text-lg font-bold">Wealth Haven</h1>
+          <h1 className="text-lg font-bold">Krypton</h1>
         </div>
         
         <div className="flex items-center space-x-2">
