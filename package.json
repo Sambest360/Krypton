@@ -11,10 +11,16 @@
     "preview": "vite preview",
     "db:test": "node scripts/test-db.mjs",
     "db:import": "node scripts/import-schema.mjs",
-    "db:test-tables": "node scripts/test-tables.mjs"
+    "db:test-tables": "node scripts/test-tables.mjs",
+    "db:test-turso": "tsx scripts/test-turso.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx scripts/migrate.ts",
+    "db:push": "drizzle-kit push",
+    "db:apply": "tsx scripts/apply-schema.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
+    "@libsql/client": "^0.15.4",
     "@radix-ui/react-accordion": "^1.2.0",
     "@radix-ui/react-alert-dialog": "^1.1.1",
     "@radix-ui/react-aspect-ratio": "^1.1.0",
@@ -50,6 +56,8 @@
     "cmdk": "^1.0.0",
     "date-fns": "^3.6.0",
     "dotenv": "^16.4.5",
+    "drizzle-kit": "^0.31.1",
+    "drizzle-orm": "^0.43.1",
     "embla-carousel-react": "^8.3.0",
     "input-otp": "^1.2.4",
     "jsonwebtoken": "^9.0.2",
@@ -90,6 +98,7 @@
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.11",
     "ts-node": "^10.9.2",
+    "tsx": "^4.19.4",
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.0.1",
     "vite": "^5.4.1"

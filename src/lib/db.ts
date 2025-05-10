@@ -1,49 +1,63 @@
-import mysql from 'mysql2/promise';
+import { createClient } from '@libsql/client';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
 
-const pool = process.env.MYSQL_URL
-  ? mysql.createPool(process.env.MYSQL_URL)
-  : mysql.createPool({
-      host: process.env.MYSQL_HOST || 'localhost',
-      port: parseInt(process.env.MYSQL_PORT || '3306'),
-      database: process.env.MYSQL_DB || 'Krypton',
-      user: process.env.MYSQL_USER || 'root',
-      password: process.env.MYSQL_PASSWORD,
-      waitForConnections: true,
-      connectionLimit: 10,
-      queueLimit: 0,
-      ssl: {
-        rejectUnauthorized: false
-      }
-    });
+// Validate environment variables
+if (!process.env.TURSO_DATABASE_URL) {
+  throw new Error('TURSO_DATABASE_URL is not defined in environment variables');
+}
 
+if (!process.env.TURSO_AUTH_TOKEN) {
+  throw new Error('TURSO_AUTH_TOKEN is not defined in environment variables');
+}
+
+// Create database client with error handling
+const client = createClient({
+  url: process.env.TURSO_DATABASE_URL,
+  authToken: process.env.TURSO_AUTH_TOKEN
+});
+
+// Custom error types
+export class DatabaseError extends Error {
+  constructor(message: string, public cause?: Error) {
+    super(message);
+    this.name = 'DatabaseError';
+  }
+}
+
+export class AuthenticationError extends DatabaseError {
+  constructor(message: string = 'Database authentication failed', cause?: Error) {
+    super(message, cause);
+    this.name = 'AuthenticationError';
+  }
+}
 
 export const query = async (text: string, params?: any[]) => {
   const start = Date.now();
   try {
-    const [rows] = await pool.execute(text, params);
+    const result = await client.execute({ sql: text, args: params });
     const duration = Date.now() - start;
     console.log('Executed query', { text, duration });
-    return rows;
-  } catch (error) {
-    console.error('Database query error:', error);
-    throw error;
+    return result.rows;
+  } catch (error: any) {
+    if (error.code === 'SERVER_ERROR' && error.cause?.status === 401) {
+      throw new AuthenticationError('Database authentication failed', error);
+    }
+    throw new DatabaseError(`Query failed: ${text}`, error);
   }
 };
 
-export const getConnection = async () => await pool.getConnection();
-
-// Test database connection
 export const testConnection = async () => {
   try {
-    const conn = await pool.getConnection();
-    console.log('Successfully connected to the database!');
-    return conn;
-  } catch (error) {
-    console.error('Database connection error:', error);
-    throw error;
+    await client.execute({ sql: 'SELECT 1' });
+    console.log('✅ Successfully connected to Turso database!');
+    return true;
+  } catch (error: any) {
+    if (error.code === 'SERVER_ERROR' && error.cause?.status === 401) {
+      throw new AuthenticationError('Failed to authenticate with Turso database', error);
+    }
+    throw new DatabaseError('Failed to connect to database', error);
   }
 };
 
@@ -63,38 +77,26 @@ export const createUser = async (
   passwordHash: string,
   isAdmin: boolean = false
 ) => {
-  const conn = await getConnection();
   try {
-    await conn.beginTransaction();
-    
     // Insert user with UUID
-    const [userResult] = await conn.execute(
+    const [userResult] = await query(
       `INSERT INTO users (id, name, email, phone, password_hash, is_admin)
-       VALUES (UUID(), ?, ?, ?, ?, ?)`,
+       VALUES (UUID(), ?, ?, ?, ?, ?) RETURNING id`,
       [name, email, phone, passwordHash, isAdmin]
-    ) as any;
-    
-    const [userIdResult] = await conn.execute(
-      'SELECT id FROM users WHERE email = ?',
-      [email]
     ) as any[];
     
-    const userId = userIdResult[0].id;
+    const userId = userResult[0].id;
     
     // Initialize balance
-    await conn.execute(
+    await query(
       `INSERT INTO balances (user_id)
        VALUES (?)`,
       [userId]
     );
     
-    await conn.commit();
     return userId;
   } catch (error) {
-    await conn.rollback();
     throw error;
-  } finally {
-    conn.release();
   }
 };
 
@@ -103,12 +105,9 @@ export const updateUserBalance = async (
   asset: string,
   amount: number
 ) => {
-  const conn = await getConnection();
   try {
-    await conn.beginTransaction();
-    
     // Update balance
-    await conn.execute(
+    await query(
       `UPDATE balances 
        SET ${asset.toLowerCase()} = ?
        WHERE user_id = ?`,
@@ -116,19 +115,14 @@ export const updateUserBalance = async (
     );
     
     // Record transaction
-    await conn.execute(
+    await query(
       `INSERT INTO transaction_history 
        (id, user_id, transaction_type, asset, amount, status)
        VALUES (UUID(), ?, ?, ?, ?, ?)`,
       [userId, 'UPDATE', asset, amount, 'COMPLETED']
     );
-    
-    await conn.commit();
   } catch (error) {
-    await conn.rollback();
     throw error;
-  } finally {
-    conn.release();
   }
 };
 
@@ -190,12 +184,9 @@ export const createTransaction = async (
   asset: string,
   amount: number
 ) => {
-  const conn = await getConnection();
   try {
-    await conn.beginTransaction();
-    
     // Create transaction record
-    await conn.execute(
+    await query(
       `INSERT INTO transaction_history 
        (id, user_id, transaction_type, asset, amount, status)
        VALUES (UUID(), ?, ?, ?, ?, 'PENDING')`,
@@ -204,7 +195,7 @@ export const createTransaction = async (
     
     // Update balance based on transaction type
     const modifier = type === 'WITHDRAWAL' ? -1 : 1;
-    await conn.execute(
+    await query(
       `UPDATE balances 
        SET ${asset.toLowerCase()} = ${asset.toLowerCase()} + ?
        WHERE user_id = ?`,
@@ -212,7 +203,7 @@ export const createTransaction = async (
     );
     
     // Update transaction status to completed
-    await conn.execute(
+    await query(
       `UPDATE transaction_history 
        SET status = 'COMPLETED'
        WHERE user_id = ? 
@@ -220,12 +211,7 @@ export const createTransaction = async (
        LIMIT 1`,
       [userId]
     );
-    
-    await conn.commit();
   } catch (error) {
-    await conn.rollback();
     throw error;
-  } finally {
-    conn.release();
   }
 };
