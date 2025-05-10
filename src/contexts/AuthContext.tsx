@@ -1,33 +1,25 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useToast } from "@/components/ui/use-toast";
+import {
+  User,
+  UserBalance,
+  getUserByEmail,
+  getUserById,
+  getUserBalance,
+  createUser,
+  verifyPassword,
+  updateUser,
+  updateUserBalance
+} from '@/lib/db/users';
 
-// Types
-export type User = {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  kycVerified: boolean;
-  kycDocument: string;
-  isAdmin?: boolean;
-  createdAt: string;
-};
-
-export type UserBalance = {
-  BTC: number;
-  ETH: number;
-  XRP: number;
-  USD: number;
-  GBP: number;
-  EUR: number;
-};
+// Re-export types from db/users
+export type { User, UserBalance } from '@/lib/db/users';
 
 type AuthContextType = {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  balance: UserBalance;
+  balance: UserBalance | null;
   login: (email: string, password: string) => Promise<boolean>;
   register: (name: string, email: string, phone: string, password: string) => Promise<boolean>;
   logout: () => void;
@@ -36,119 +28,120 @@ type AuthContextType = {
   resetPassword: (email: string) => Promise<boolean>;
 };
 
-// Mock data
-const MOCK_USERS: User[] = [
-  {
-    id: '1',
-    name: 'Admin User',
-    email: 'admin@example.com',
-    phone: '1234567890',
-    kycVerified: true,
-    kycDocument: 'ID12345',
-    isAdmin: true,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '2',
-    name: 'John Doe',
-    email: 'user@example.com',
-    phone: '0987654321',
-    kycVerified: true,
-    kycDocument: 'DL54321',
-    createdAt: new Date().toISOString(),
-  },
-];
-
-const MOCK_BALANCES: Record<string, UserBalance> = {
-  '1': {
-    BTC: 2.5,
-    ETH: 10,
-    XRP: 5000,
-    USD: 10000,
-    GBP: 8000,
-    EUR: 9000,
-  },
-  '2': {
-    BTC: 0.5,
-    ETH: 5,
-    XRP: 2000,
-    USD: 5000,
-    GBP: 4000,
-    EUR: 4500,
-  },
-};
-
-const DEFAULT_BALANCE: UserBalance = {
-  BTC: 0,
-  ETH: 0,
-  XRP: 0,
-  USD: 0,
-  GBP: 0,
-  EUR: 0,
-};
-
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [balance, setBalance] = useState<UserBalance>(DEFAULT_BALANCE);
+  const [balance, setBalance] = useState<UserBalance | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const { toast } = useToast();
 
+  // Load user balance
+  const loadUserBalance = async (userId: string) => {
+    try {
+      const userBalance = await getUserBalance(userId);
+      setBalance(userBalance);
+    } catch (error) {
+      console.error('Failed to load user balance:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load balance. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
   // Check if user is already logged in (from localStorage)
   useEffect(() => {
-    const storedUser = localStorage.getItem('tradingUser');
-    if (storedUser) {
-      try {
-        const parsedUser = JSON.parse(storedUser);
-        setUser(parsedUser);
-        
-        // Load balance for this user
-        const userBalance = MOCK_BALANCES[parsedUser.id] || DEFAULT_BALANCE;
-        setBalance(userBalance);
-      } catch (error) {
-        console.error('Failed to parse stored user data', error);
-        localStorage.removeItem('tradingUser');
+    const loadStoredUser = async () => {
+      const storedUserId = localStorage.getItem('tradingUserId');
+      if (storedUserId) {
+        try {
+          const dbUser = await getUserById(storedUserId);
+          if (dbUser) {
+            setUser(dbUser);
+            await loadUserBalance(dbUser.id);
+          } else {
+            localStorage.removeItem('tradingUserId');
+          }
+        } catch (error) {
+          console.error('Failed to load user data:', error);
+          localStorage.removeItem('tradingUserId');
+        }
       }
-    }
-    setIsLoading(false);
+      setIsLoading(false);
+    };
+
+    loadStoredUser();
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    // Simulate API call
     setIsLoading(true);
     
-    // Simulate delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const foundUser = MOCK_USERS.find(u => u.email === email);
-    
-    if (foundUser) {
-      // In real app, check password hash here
-      setUser(foundUser);
-      localStorage.setItem('tradingUser', JSON.stringify(foundUser));
+    try {
+      const dbUser = await getUserByEmail(email);
       
-      // Load balance for this user
-      const userBalance = MOCK_BALANCES[foundUser.id] || DEFAULT_BALANCE;
-      setBalance(userBalance);
+      if (!dbUser) {
+        toast({
+          title: "Login Failed",
+          description: "Invalid email or password. Please try again.",
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      const isValidPassword = await verifyPassword(dbUser, password);
+      
+      if (!isValidPassword) {
+        toast({
+          title: "Login Failed",
+          description: "Invalid email or password. Please try again.",
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      setUser(dbUser);
+      localStorage.setItem('tradingUserId', dbUser.id);
+      
+      await loadUserBalance(dbUser.id);
       
       toast({
         title: "Login Successful",
-        description: `Welcome back, ${foundUser.name}!`,
+        description: `Welcome back, ${dbUser.name}!`,
       });
       
-      setIsLoading(false);
       return true;
+    } catch (error) {
+      console.error('Login error:', error);
+      toast({
+        title: "Login Failed",
+        description: "An error occurred. Please try again.",
+        variant: "destructive"
+      });
+      return false;
+    } finally {
+      setIsLoading(false);
     }
-    
-    toast({
-      title: "Login Failed",
-      description: "Invalid email or password. Please try again.",
-      variant: "destructive"
-    });
-    
-    setIsLoading(false);
-    return false;
+  };
+
+  const validatePassword = (password: string): string | null => {
+    if (password.length < 8) {
+      return 'Password must be at least 8 characters long';
+    }
+    if (!/[A-Z]/.test(password)) {
+      return 'Password must contain at least one uppercase letter';
+    }
+    if (!/[a-z]/.test(password)) {
+      return 'Password must contain at least one lowercase letter';
+    }
+    if (!/[0-9]/.test(password)) {
+      return 'Password must contain at least one number';
+    }
+    if (!/[!@#$%^&*]/.test(password)) {
+      return 'Password must contain at least one special character (!@#$%^&*)';
+    }
+    return null;
   };
 
   const register = async (
@@ -159,54 +152,81 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   ): Promise<boolean> => {
     setIsLoading(true);
     
-    // Simulate delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Check if email already exists
-    if (MOCK_USERS.some(u => u.email === email)) {
+    try {
+      // Validate password first
+      const passwordError = validatePassword(password);
+      if (passwordError) {
+        toast({
+          title: "Invalid Password",
+          description: passwordError,
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      // Check if user exists
+      const existingUser = await getUserByEmail(email);
+      if (existingUser) {
+        toast({
+          title: "Account Already Exists",
+          description: "The email address you entered is already registered. Please use a different email or try logging in.",
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        toast({
+          title: "Invalid Email",
+          description: "Please enter a valid email address.",
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      // Validate phone number (basic validation)
+      const phoneRegex = /^\+?[1-9]\d{1,14}$/;
+      if (!phoneRegex.test(phone.replace(/[\s-]/g, ''))) {
+        toast({
+          title: "Invalid Phone Number",
+          description: "Please enter a valid phone number.",
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      // All validations passed, create user
+      const newUser = await createUser(name, email, phone, password);
+      setUser(newUser);
+      localStorage.setItem('tradingUserId', newUser.id);
+      
+      await loadUserBalance(newUser.id);
+      
+      toast({
+        title: "Registration Successful",
+        description: "Your account has been created. Please complete KYC verification.",
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Registration error:', error);
       toast({
         title: "Registration Failed",
-        description: "Email already exists. Please use another email.",
+        description: error instanceof Error ? error.message : "An unexpected error occurred. Please try again.",
         variant: "destructive"
       });
-      setIsLoading(false);
       return false;
+    } finally {
+      setIsLoading(false);
     }
-    
-    // Create new user
-    const newUser: User = {
-      id: `${MOCK_USERS.length + 1}`,
-      name,
-      email,
-      phone,
-      kycVerified: false,
-      kycDocument: '',
-      createdAt: new Date().toISOString(),
-    };
-    
-    // In a real app, we would make an API call to register
-    MOCK_USERS.push(newUser);
-    
-    // Initialize balance for new user
-    MOCK_BALANCES[newUser.id] = { ...DEFAULT_BALANCE };
-    
-    setUser(newUser);
-    localStorage.setItem('tradingUser', JSON.stringify(newUser));
-    setBalance(DEFAULT_BALANCE);
-    
-    toast({
-      title: "Registration Successful",
-      description: "Your account has been created. Please complete KYC verification.",
-    });
-    
-    setIsLoading(false);
-    return true;
   };
 
   const logout = () => {
     setUser(null);
-    setBalance(DEFAULT_BALANCE);
-    localStorage.removeItem('tradingUser');
+    setBalance(null);
+    localStorage.removeItem('tradingUserId');
     toast({
       title: "Logged Out",
       description: "You have been successfully logged out.",
@@ -218,57 +238,63 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     setIsLoading(true);
     
-    // Simulate delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Update user
-    const updatedUser = { ...user, ...updates };
-    
-    // Update in mock data
-    const userIndex = MOCK_USERS.findIndex(u => u.id === user.id);
-    if (userIndex !== -1) {
-      MOCK_USERS[userIndex] = updatedUser;
+    try {
+      const updatedUser = await updateUser(user.id, updates);
+      setUser(updatedUser);
+      localStorage.setItem('tradingUserId', updatedUser.id);
+      
+      toast({
+        title: "Profile Updated",
+        description: "Your profile has been successfully updated.",
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Update profile error:', error);
+      toast({
+        title: "Update Failed",
+        description: "An error occurred. Please try again.",
+        variant: "destructive"
+      });
+      return false;
+    } finally {
+      setIsLoading(false);
     }
-    
-    setUser(updatedUser);
-    localStorage.setItem('tradingUser', JSON.stringify(updatedUser));
-    
-    toast({
-      title: "Profile Updated",
-      description: "Your profile has been successfully updated.",
-    });
-    
-    setIsLoading(false);
-    return true;
   };
 
   const resetPassword = async (email: string): Promise<boolean> => {
     setIsLoading(true);
 
-    // Simulate delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      const dbUser = await getUserByEmail(email);
 
-    // Check if email exists
-    const userExists = MOCK_USERS.some(u => u.email === email);
+      if (!dbUser) {
+        toast({
+          title: "Reset Password Failed",
+          description: "No account found with this email address.",
+          variant: "destructive"
+        });
+        return false;
+      }
 
-    if (!userExists) {
+      // In a real app, this would send a password reset email
       toast({
-        title: "Reset Password Failed",
-        description: "No account found with this email address.",
+        title: "Reset Instructions Sent",
+        description: "If an account exists with this email, you will receive password reset instructions.",
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Reset password error:', error);
+      toast({
+        title: "Reset Failed",
+        description: "An error occurred. Please try again.",
         variant: "destructive"
       });
-      setIsLoading(false);
       return false;
+    } finally {
+      setIsLoading(false);
     }
-
-    // In a real app, this would send a password reset email
-    toast({
-      title: "Reset Instructions Sent",
-      description: "If an account exists with this email, you will receive password reset instructions.",
-    });
-
-    setIsLoading(false);
-    return true;
   };
 
   const submitKYC = async (documentType: string, documentId: string): Promise<boolean> => {
@@ -276,32 +302,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     setIsLoading(true);
     
-    // Simulate delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Update user
-    const updatedUser = { 
-      ...user, 
-      kycDocument: documentId, 
-      kycVerified: true 
-    };
-    
-    // Update in mock data
-    const userIndex = MOCK_USERS.findIndex(u => u.id === user.id);
-    if (userIndex !== -1) {
-      MOCK_USERS[userIndex] = updatedUser;
+    try {
+      const updatedUser = await updateUser(user.id, {
+        kyc_document: documentId,
+        kyc_verified: true
+      });
+      
+      setUser(updatedUser);
+      localStorage.setItem('tradingUserId', updatedUser.id);
+      
+      toast({
+        title: "KYC Submitted",
+        description: `Your ${documentType} verification has been approved.`,
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('KYC submission error:', error);
+      toast({
+        title: "KYC Submission Failed",
+        description: "An error occurred. Please try again.",
+        variant: "destructive"
+      });
+      return false;
+    } finally {
+      setIsLoading(false);
     }
-    
-    setUser(updatedUser);
-    localStorage.setItem('tradingUser', JSON.stringify(updatedUser));
-    
-    toast({
-      title: "KYC Submitted",
-      description: `Your ${documentType} verification has been approved.`,
-    });
-    
-    setIsLoading(false);
-    return true;
   };
 
   const value = {
@@ -331,12 +357,10 @@ export const useAuth = () => {
 // Admin context to export mock data for the admin dashboard
 export const useMockData = () => {
   return {
-    users: MOCK_USERS,
-    balances: MOCK_BALANCES,
+    users: [],
+    balances: {},
     updateUserBalance: (userId: string, asset: keyof UserBalance, amount: number) => {
-      if (MOCK_BALANCES[userId]) {
-        MOCK_BALANCES[userId][asset] = amount;
-      }
+      // No-op
     }
   };
 };

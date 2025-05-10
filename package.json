@@ -16,7 +16,9 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx scripts/migrate.ts",
     "db:push": "drizzle-kit push",
-    "db:apply": "tsx scripts/apply-schema.ts"
+    "db:apply": "tsx scripts/apply-schema.ts",
+    "db:create-admin": "tsx scripts/create-admin.ts",
+    "db:check-schema": "tsx scripts/check-schema.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
@@ -76,6 +78,7 @@
     "sonner": "^1.5.0",
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
+    "uuid": "^11.1.0",
     "vaul": "^0.9.3",
     "zod": "^3.23.8"
   },
@@ -88,6 +91,7 @@
     "@types/nodemailer": "^6.4.14",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
+    "@types/uuid": "^10.0.0",
     "@vitejs/plugin-react-swc": "^3.5.0",
     "autoprefixer": "^10.4.20",
     "eslint": "^9.9.0",

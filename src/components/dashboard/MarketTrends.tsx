@@ -1,19 +1,78 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 
-// Mock market data
-const marketData = [
-  { name: 'Bitcoin', symbol: 'BTC', price: 50432.67, change: 2.35, volume: '12.5B', color: '#F7931A' },
-  { name: 'Ethereum', symbol: 'ETH', price: 2987.41, change: 1.87, volume: '8.2B', color: '#627EEA' },
-  { name: 'XRP', symbol: 'XRP', price: 0.512, change: -0.73, volume: '2.1B', color: '#23292F' },
-  { name: 'US Dollar', symbol: 'USD', price: 1.00, change: 0.05, volume: '86.3B', color: '#6B8068' },
-  { name: 'British Pound', symbol: 'GBP', price: 1.30, change: -0.12, volume: '4.9B', color: '#213A87' },
-  { name: 'Euro', symbol: 'EUR', price: 1.18, change: 0.22, volume: '19.7B', color: '#0F47AF' },
-];
+type MarketData = {
+  name: string;
+  symbol: string;
+  current_price: number;
+  price_change_percentage_24h: number;
+  total_volume: number;
+};
 
-const MarketTrends = () => {
+const MarketTrends: React.FC = () => {
+  const [marketData, setMarketData] = useState<MarketData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchMarketData = async () => {
+      try {
+        const response = await fetch(
+          'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,ethereum,ripple&order=market_cap_desc&sparkline=false'
+        );
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch market data');
+        }
+        
+        const data = await response.json();
+        setMarketData(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch market data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMarketData();
+    
+    // Refresh data every 5 minutes
+    const interval = setInterval(fetchMarketData, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Market Trends</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center text-muted-foreground">
+            Loading market data...
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Market Trends</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center text-red-600">
+            {error}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -37,33 +96,31 @@ const MarketTrends = () => {
                     <div className="flex items-center space-x-2">
                       <div 
                         className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold"
-                        style={{ backgroundColor: asset.color }}
+                        style={{ backgroundColor: '#F7931A' }}
                       >
                         {asset.symbol.charAt(0)}
                       </div>
                       <div>
                         <p className="font-medium">{asset.name}</p>
-                        <p className="text-xs text-muted-foreground">{asset.symbol}</p>
+                        <p className="text-xs text-muted-foreground">{asset.symbol.toUpperCase()}</p>
                       </div>
                     </div>
                   </td>
                   <td className="p-3 font-medium">
-                    {asset.symbol === 'USD' || asset.symbol === 'GBP' || asset.symbol === 'EUR'
-                      ? new Intl.NumberFormat('en-US', { 
-                          style: 'currency', 
-                          currency: 'USD' 
-                        }).format(asset.price)
-                      : `$${asset.price.toLocaleString()}`
-                    }
+                    ${asset.current_price.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </td>
                   <td className="p-3">
-                    <div className={`flex items-center ${asset.change >= 0 ? 'text-trading-success' : 'text-trading-danger'}`}>
-                      {asset.change >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
-                      <span className="ml-1">{asset.change >= 0 ? '+' : ''}{asset.change}%</span>
+                    <div className={`flex items-center ${asset.price_change_percentage_24h >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {asset.price_change_percentage_24h >= 0 ? (
+                        <TrendingUp size={12} className="mr-1" />
+                      ) : (
+                        <TrendingDown size={12} className="mr-1" />
+                      )}
+                      {Math.abs(asset.price_change_percentage_24h).toFixed(2)}%
                     </div>
                   </td>
                   <td className="p-3 hidden sm:table-cell text-muted-foreground">
-                    {asset.volume}
+                    ${asset.total_volume.toLocaleString('en-US', { maximumFractionDigits: 0 })}
                   </td>
                 </tr>
               ))}

@@ -1,28 +1,56 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { User, Users, DollarSign, TrendingUp, TrendingDown } from 'lucide-react';
-import { useMockData } from '@/contexts/AuthContext';
+import { User as UserIcon, Users, DollarSign, TrendingUp, TrendingDown } from 'lucide-react';
+import { User, UserBalance } from '@/lib/db/users';
+
+const CONVERSION_RATES = {
+  btc: 50000,  // 1 BTC = $50,000
+  eth: 3000,   // 1 ETH = $3,000
+  xrp: 0.50,   // 1 XRP = $0.50
+  usd: 1,      // 1 USD = $1
+  gbp: 1.30,   // 1 GBP = $1.30
+  eur: 1.18    // 1 EUR = $1.18
+};
 
 const Admin = () => {
-  const { users, balances } = useMockData();
+  const [users, setUsers] = useState<User[]>([]);
+  const [balances, setBalances] = useState<Record<string, UserBalance>>({});
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await fetch('/api/admin/dashboard');
+        const data = await response.json();
+        setUsers(data.users);
+        setBalances(data.balances);
+      } catch (error) {
+        console.error('Failed to fetch admin data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, []);
   
   // Calculate total users
-  const totalUsers = users.filter(user => !user.isAdmin).length;
+  const totalUsers = users.filter(user => !user.is_admin).length;
   
   // Calculate KYC verified users
-  const verifiedUsers = users.filter(user => user.kycVerified && !user.isAdmin).length;
+  const verifiedUsers = users.filter(user => user.kyc_verified && !user.is_admin).length;
   
   // Calculate total balance across all assets and users
   const totalBalance = Object.values(balances).reduce((total, userBalance) => {
     const userTotal = (
-      userBalance.USD +
-      userBalance.EUR * 1.18 +  // Convert to USD
-      userBalance.GBP * 1.30 +  // Convert to USD
-      userBalance.BTC * 50000 + // Convert to USD
-      userBalance.ETH * 3000 +  // Convert to USD
-      userBalance.XRP * 0.50    // Convert to USD
+      parseFloat(userBalance.usd) +
+      parseFloat(userBalance.eur) * CONVERSION_RATES.eur +
+      parseFloat(userBalance.gbp) * CONVERSION_RATES.gbp +
+      parseFloat(userBalance.btc) * CONVERSION_RATES.btc +
+      parseFloat(userBalance.eth) * CONVERSION_RATES.eth +
+      parseFloat(userBalance.xrp) * CONVERSION_RATES.xrp
     );
     return total + userTotal;
   }, 0);
@@ -30,9 +58,9 @@ const Admin = () => {
   // Calculate total crypto holdings
   const totalCrypto = Object.values(balances).reduce((total, userBalance) => {
     const cryptoTotal = (
-      userBalance.BTC * 50000 +
-      userBalance.ETH * 3000 +
-      userBalance.XRP * 0.50
+      parseFloat(userBalance.btc) * CONVERSION_RATES.btc +
+      parseFloat(userBalance.eth) * CONVERSION_RATES.eth +
+      parseFloat(userBalance.xrp) * CONVERSION_RATES.xrp
     );
     return total + cryptoTotal;
   }, 0);
@@ -40,9 +68,9 @@ const Admin = () => {
   // Calculate total fiat holdings
   const totalFiat = Object.values(balances).reduce((total, userBalance) => {
     const fiatTotal = (
-      userBalance.USD +
-      userBalance.EUR * 1.18 +
-      userBalance.GBP * 1.30
+      parseFloat(userBalance.usd) +
+      parseFloat(userBalance.eur) * CONVERSION_RATES.eur +
+      parseFloat(userBalance.gbp) * CONVERSION_RATES.gbp
     );
     return total + fiatTotal;
   }, 0);
@@ -136,12 +164,12 @@ const Admin = () => {
                 </tr>
               </thead>
               <tbody>
-                {users.filter(user => !user.isAdmin).map((user) => (
+                {users.filter(user => !user.is_admin).map((user) => (
                   <tr key={user.id} className="border-b">
                     <td className="p-3">
                       <div className="flex items-center space-x-3">
                         <div className="h-8 w-8 rounded-full flex items-center justify-center bg-muted">
-                          <User size={16} />
+                          <UserIcon size={16} />
                         </div>
                         <span className="font-medium">{user.name}</span>
                       </div>
@@ -150,12 +178,12 @@ const Admin = () => {
                     <td className="p-3">{user.phone}</td>
                     <td className="p-3">
                       <span className={`px-2 py-1 rounded-full text-xs 
-                        ${user.kycVerified ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}`}>
-                        {user.kycVerified ? 'Verified' : 'Pending'}
+                        ${user.kyc_verified ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}`}>
+                        {user.kyc_verified ? 'Verified' : 'Pending'}
                       </span>
                     </td>
                     <td className="p-3 text-muted-foreground">
-                      {new Date(user.createdAt).toLocaleDateString()}
+                      {new Date(user.created_at).toLocaleDateString()}
                     </td>
                   </tr>
                 ))}

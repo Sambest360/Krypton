@@ -19,4 +19,19 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  css: {
+    postcss: './postcss.config.cjs',
+  },
+  optimizeDeps: {
+    exclude: ['@mapbox/node-pre-gyp', 'mock-aws-s3', 'aws-sdk', 'nock'],
+    include: ['react', 'react-dom', 'react-router-dom'],
+  },
+  build: {
+    commonjsOptions: {
+      include: [],
+    },
+    rollupOptions: {
+      external: ['@mapbox/node-pre-gyp', 'mock-aws-s3', 'aws-sdk', 'nock'],
+    },
+  },
 }));
