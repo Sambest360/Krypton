@@ -20,7 +20,34 @@ const assetConfig = {
 };
 
 const Wallet = () => {
-  const { balance } = useAuth();
+  const { balance, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-[calc(100vh-200px)]">
+          <div className="animate-pulse-gentle text-2xl font-semibold text-trading-primary">
+            Loading your wallet...
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!balance) {
+    return (
+      <DashboardLayout>
+        <div className="flex flex-col items-center justify-center h-[calc(100vh-200px)]">
+          <p className="text-xl font-semibold text-muted-foreground mb-4">
+            Unable to load wallet data
+          </p>
+          <Button onClick={() => window.location.reload()} variant="outline">
+            Retry
+          </Button>
+        </div>
+      </DashboardLayout>
+    );
+  }
   
   // Mock transaction history
   const transactions = [
@@ -60,18 +87,26 @@ const Wallet = () => {
             <CardContent>
               <div className="space-y-1">
                 <p className="text-2xl font-bold">
-                  {asset === 'BTC' || asset === 'ETH' || asset === 'XRP' 
-                    ? balance[asset].toFixed(asset === 'XRP' ? 1 : 5) 
-                    : new Intl.NumberFormat('en-US', { 
-                        style: 'currency', 
-                        currency: asset 
-                      }).format(balance[asset])
-                  }
+                  {(() => {
+                    const value = balance[asset.toLowerCase() as keyof typeof balance] || 0;
+                    if (asset === 'BTC' || asset === 'ETH' || asset === 'XRP') {
+                      return value.toFixed(asset === 'XRP' ? 1 : 5);
+                    }
+                    return new Intl.NumberFormat('en-US', { 
+                      style: 'currency', 
+                      currency: asset 
+                    }).format(value);
+                  })()} 
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {asset === 'BTC' || asset === 'ETH' || asset === 'XRP' 
-                    ? `≈ $${(balance[asset] * (asset === 'BTC' ? 50000 : asset === 'ETH' ? 3000 : 0.50)).toLocaleString()}`
-                    : ''}
+                  {(() => {
+                    if (asset === 'BTC' || asset === 'ETH' || asset === 'XRP') {
+                      const value = balance[asset.toLowerCase() as keyof typeof balance] || 0;
+                      const rate = asset === 'BTC' ? 50000 : asset === 'ETH' ? 3000 : 0.50;
+                      return `≈ $${(value * rate).toLocaleString()}`;
+                    }
+                    return '';
+                  })()}
                 </p>
               </div>
             </CardContent>
