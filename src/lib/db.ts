@@ -1,5 +1,6 @@
 import { createClient } from '@libsql/client';
 import * as dotenv from 'dotenv';
+import { webcrypto } from 'crypto';
 
 dotenv.config();
 
@@ -105,12 +106,17 @@ export const updateUserBalance = async (
   asset: string,
   amount: number
 ) => {
+  // Validate asset name to prevent SQL injection
+  const validAssets = ['btc', 'eth', 'usdt'];
+  const normalizedAsset = asset.toLowerCase();
+  if (!validAssets.includes(normalizedAsset)) {
+    throw new DatabaseError(`Invalid asset type: ${asset}`);
+  }
+
   try {
-    // Update balance
+    // Update balance using parameterized query
     await query(
-      `UPDATE balances 
-       SET ${asset.toLowerCase()} = ?
-       WHERE user_id = ?`,
+      'UPDATE balances SET ' + normalizedAsset + ' = ? WHERE user_id = ?',
       [amount, userId]
     );
     
@@ -119,7 +125,7 @@ export const updateUserBalance = async (
       `INSERT INTO transaction_history 
        (id, user_id, transaction_type, asset, amount, status)
        VALUES (UUID(), ?, ?, ?, ?, ?)`,
-      [userId, 'UPDATE', asset, amount, 'COMPLETED']
+      [userId, 'UPDATE', normalizedAsset, amount, 'COMPLETED']
     );
   } catch (error) {
     throw error;
@@ -127,7 +133,7 @@ export const updateUserBalance = async (
 };
 
 export const createPasswordResetToken = async (userId: string) => {
-  const token = crypto.randomUUID();
+  const token = webcrypto.randomUUID();
   const expiresAt = new Date();
   expiresAt.setHours(expiresAt.getHours() + 1); // Token expires in 1 hour
   
@@ -184,21 +190,26 @@ export const createTransaction = async (
   asset: string,
   amount: number
 ) => {
+  // Validate asset name to prevent SQL injection
+  const validAssets = ['btc', 'eth', 'usdt'];
+  const normalizedAsset = asset.toLowerCase();
+  if (!validAssets.includes(normalizedAsset)) {
+    throw new DatabaseError(`Invalid asset type: ${asset}`);
+  }
+
   try {
     // Create transaction record
     await query(
       `INSERT INTO transaction_history 
        (id, user_id, transaction_type, asset, amount, status)
        VALUES (UUID(), ?, ?, ?, ?, 'PENDING')`,
-      [userId, type, asset, amount]
+      [userId, type, normalizedAsset, amount]
     );
     
     // Update balance based on transaction type
     const modifier = type === 'WITHDRAWAL' ? -1 : 1;
     await query(
-      `UPDATE balances 
-       SET ${asset.toLowerCase()} = ${asset.toLowerCase()} + ?
-       WHERE user_id = ?`,
+      'UPDATE balances SET ' + normalizedAsset + ' = ' + normalizedAsset + ' + ? WHERE user_id = ?',
       [amount * modifier, userId]
     );
     

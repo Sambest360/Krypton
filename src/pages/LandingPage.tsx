@@ -164,6 +164,45 @@ const LandingPage = () => {
           </div>
         </div>
       </section>
+
+      <section className="py-20 px-4 bg-slate-50">
+        <div className="container mx-auto">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">What Our Users Say</h2>
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              {
+                name: "Jane Cooper",
+                role: "Day Trader",
+                quote: "Krypton has completely transformed my trading experience with its intuitive interface and reliable execution."
+              },
+              {
+                name: "Robert Fox",
+                role: "Long-term Investor",
+                quote: "I've tried many platforms, but Krypton offers the best combination of security, features, and ease of use."
+              },
+              {
+                name: "Leslie Alexander",
+                role: "Crypto Enthusiast",
+                quote: "The real-time market data and analysis tools have helped me make better informed trading decisions."
+              }
+            ].map((testimonial, index) => (
+              <div key={index} className="bg-white p-6 rounded-xl shadow-md">
+                <div className="flex items-center mb-4">
+                  <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-xl">
+                    {testimonial.name.charAt(0)}
+                  </div>
+                  <div className="ml-4">
+                    <h3 className="font-bold">{testimonial.name}</h3>
+                    <p className="text-gray-600 text-sm">{testimonial.role}</p>
+                  </div>
+                </div>
+                <p className="text-gray-700">"{testimonial.quote}"</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       
       {/* CTA Section */}
       <section className="py-16 bg-trading-primary/5">
